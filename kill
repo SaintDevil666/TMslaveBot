@@ -1,0 +1,2 @@
+kill $(screen -ls | awk '/\.TMslave\t/ {print strtonum($1)}')
+

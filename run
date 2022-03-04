@@ -1,0 +1,2 @@
+screen -S TMslave -dm bash -c "python bot.py"
+# screen -S TMslave -dm bash -c "python bot.py & python scheduler.py"
