@@ -1,5 +1,7 @@
 aiohttp
+aiogram
 asyncio
+asyncpraw
 aioschedule
 beautifulsoup4
 babel
@@ -11,6 +13,7 @@ moviepy
 Pillow
 pipenv
 psutil
+pymongo
 pyrogram
 pysocks
 async-lru
