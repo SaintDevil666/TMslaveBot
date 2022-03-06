@@ -29,6 +29,7 @@ sys.stderr = ErrorLogs()
 
 
 async def send_holidays():
+    return
     date = format_datetime(datetime.today(), 'd MMMM YYYY', locale='uk_UA')
     url = "https://www.unian.ua/lite/holidays"
     soup = BeautifulSoup(requests.get(url).text, features="html.parser")
