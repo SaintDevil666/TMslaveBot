@@ -176,10 +176,10 @@ async def register_user(message):
         query['count'] = 0
         query['type'] = "user"
         db[collection].insert_one(query)
-        await bot.send_message(message.chat.id, "Ты успешно зарегистрирован(-а)!",
+        await bot.send_message(message.chat.id, "Ти успішно зареєстрований(-а)!",
                                reply_to_message_id=message.message_id)
     else:
-        await bot.send_message(message.chat.id, "Ты уже в игре!", reply_to_message_id=message.message_id)
+        await bot.send_message(message.chat.id, "Ти уже в грі!", reply_to_message_id=message.message_id)
 
 
 @dp.message_handler(commands=["pussy_me"])
@@ -188,13 +188,15 @@ async def pussy_me(message):
     query = {"type": "user", "id": str(message['from']['id'])}
     user = db[collection].find_one(query)
     if not user:
-        await bot.send_message(message.chat.id, "Ты не зарегистрирован(-а) в игре!", reply_to_message_id=message.message_id)
+        await bot.send_message(message.chat.id, "Ти не зареєстрований(-а) в грі!", reply_to_message_id=message.message_id)
     else:
-        if 0 <= ((user['count'] % 100) % 10) <= 1 or 5 <= user['count'] % 100 <= 21:
+        if user['count'] % 10 == 1:
             plural = "раз"
+        elif 5 <= user['count'] % 100 <= 20:
+            plural = "разів"
         else:
-            plural = "раза"
-        await bot.send_message(message.chat.id, f"Ты был(-а) киской дня {user['count']} {plural}!",
+            plural = "рази"
+        await bot.send_message(message.chat.id, f"Ти був(-ла) кіскою дня {user['count']} {plural}!",
                                reply_to_message_id=message.message_id)
 
 
@@ -210,18 +212,20 @@ async def pussy_top(message):
                 users[j] = users[j + 1]
                 users[j + 1] = temp
 
-    text = "<u><i>Топ-10 кисок:</i></u>\n"
+    text = "<u><i>Топ-10 кісок:</i></u>\n"
 
     symbol = ["🥇", "🥈", "🥉"]
     for i in range(min(10, len(users))):
-        if 0 <= ((users[i]['count'] % 100) % 10) <= 1 or 5 <= users[i]['count'] % 100 <= 21:
+        if users[i]['count'] % 10 == 1:
             plural = "раз"
+        elif 5 <= users[i]['count'] % 100 <= 20:
+            plural = "разів"
         else:
-            plural = "раза"
+            plural = "рази"
         text += (symbol[i] if i < 3 else (str(i + 1) + ". ")) + "<b>" + \
                 ((users[i]['username'] or "") or users[i]['name']) + "</b> - <i>" + str(
             users[i]['count']) + " " + plural + "</i>\n"
-    text += f"\nВсего участников: {len(users)}"
+    text += f"\nВсього учасників: {len(users)}"
     await bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 
@@ -251,7 +255,7 @@ async def choose_pussy(message):
         db[collection].update_one(query, update)
 
         await bot.send_message(message.chat.id,
-                               "Сегодняшняя киска дня - " + (
+                               "Сьогодні кіска дня - " + (
                                    ("@" + new_winner['username']) if new_winner["username"] else new_winner[
                                        'name']) + "!")
         await bot.send_sticker(message.chat.id,
@@ -260,7 +264,7 @@ async def choose_pussy(message):
         for user in users:
             if user["id"] == prev_winner["winner"]:
                 await bot.send_message(message.chat.id,
-                                       "Сегодня киской дня уже выбран(-а) " + (
+                                       "Сьогодні кіскою дня уже обрано " + (
                                                (user['username'] or "") or user['name']) + "!")
                 break
 
@@ -273,7 +277,7 @@ async def reverse_video(message):
         elif message.reply_to_message.animation:
             file_id = message.reply_to_message.animation.file_id
         else:
-            await bot.send_message(message.chat.id, "Ответь командой на видео или гифку!",
+            await bot.send_message(message.chat.id, "Реплайни командою на відео або гіфку!",
                                    reply_to_message_id=message.message_id)
             return
         path = await download_file(file_id)
@@ -283,7 +287,7 @@ async def reverse_video(message):
         os.remove(path)
         os.remove(new_path)
         return
-    await bot.send_message(message.chat.id, "Ответь командой на видео или гифку!",
+    await bot.send_message(message.chat.id, "Реплайни командою на відео або гіфку!",
                            reply_to_message_id=message.message_id)
 
 
@@ -294,14 +298,14 @@ async def postirony(message):
             path = await download_file(message.reply_to_message.photo[-1].file_id)
             text = message.text.split(" ", maxsplit=1)[1]
             if len(text) == 0:
-                await bot.send_message(message.chat.id, "А текст я сам придумать должен?",
+                await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
                                        reply_to_message_id=message.message_id)
                 return
             postironic(path, text)
             await bot.send_photo(message.chat.id, photo=open(path, 'rb'))
             os.remove(path)
             return
-    await bot.send_message(message.chat.id, "Ответь командой на картинку!", reply_to_message_id=message.message_id)
+    await bot.send_message(message.chat.id, "Реплайни командою на картинку!", reply_to_message_id=message.message_id)
 
 
 def postironic(path, text):
@@ -321,6 +325,10 @@ async def demotivators(message):
         if message.reply_to_message.photo:
             path = await download_file(message.reply_to_message.photo[-1].file_id)
             text = message.text.split(" ", maxsplit=1)[1]
+            if not text:
+                await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
+                                       reply_to_message_id=message.message_id)
+                return
             captions = text.split("\n\n")
             for caption in captions:
                 caption = caption.split("\n")
@@ -332,6 +340,8 @@ async def demotivators(message):
                 demotivator_generator(path, title, plain)
             await bot.send_photo(message.chat.id, open(path, 'rb'))
             os.remove(path)
+            return
+    await bot.send_message(message.chat.id, "Реплайни командою на картинку!", reply_to_message_id=message.message_id)
 
 
 def demotivator_generator(path, title_text, plain_text):
