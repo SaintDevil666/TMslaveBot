@@ -404,7 +404,7 @@ def demotivator_video(path, title_text, plain_text=""):
     os.remove(template)
     meme = CompositeVideoClip([template_clip, gif.resize((482, 322)).set_position((59, 39))])
     name = str(int(random.random() * 10000)) + '.mp4'
-    meme.write_videofile(name) # , verbose=False, logger=None)
+    meme.write_videofile(name, verbose=False, logger=None)
     return name
 
 
