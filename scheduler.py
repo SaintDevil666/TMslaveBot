@@ -29,7 +29,6 @@ sys.stderr = ErrorLogs()
 
 
 async def send_holidays():
-    return
     date = format_datetime(datetime.today(), 'd MMMM YYYY', locale='uk_UA')
     url = "https://www.unian.ua/lite/holidays"
     soup = BeautifulSoup(requests.get(url).text, features="html.parser")
@@ -60,7 +59,7 @@ async def send_holidays():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
-    schedule.every().day.at("6:01").do(send_holidays)
+    # schedule.every().day.at("6:01").do(send_holidays)
     schedule.every().tuesday.at("23:01").do(bot.send_sticker, chat_id=-1001247268742, sticker="CAACAgIAAxkBAAEKkbJg2J33eYHwNrmjAgJ8VYcqPO_GIgACGAEAApXcNhsZWSFEX9acniAE")
     
     while True:

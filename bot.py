@@ -15,6 +15,7 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from bs4 import BeautifulSoup
 from babel.dates import format_datetime
 from PIL import Image, ImageDraw, ImageFont
+from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip
 import config
 
 bot = Bot(config.TOKEN)
@@ -36,6 +37,13 @@ last_holidays = {
     "text": ""
 }
 
+try:
+    os.mkdir("animations/")
+    os.mkdir("videos/")
+except:
+    pass
+
+
 
 class ErrorLogs(object):
     errs = []
@@ -51,10 +59,9 @@ class ErrorLogs(object):
 
 sys.stderr = ErrorLogs()
 
-
+'''
 @dp.message_handler(commands=["holidays"])
 async def send_holidays(message):
-    return
     date = format_datetime(datetime.today(), 'd MMMM YYYY', locale='uk_UA')
     if last_holidays['date'] == date:
         await bot.send_message(message.chat.id, last_holidays['text'])
@@ -85,6 +92,7 @@ async def send_holidays(message):
             last_holidays['date'] = date
             last_holidays['text'] = text
             break
+'''
 
 
 @dp.message_handler(commands=["roll"])
@@ -341,16 +349,41 @@ async def demotivators(message):
             await bot.send_photo(message.chat.id, open(path, 'rb'))
             os.remove(path)
             return
-    await bot.send_message(message.chat.id, "Реплайни командою на картинку!", reply_to_message_id=message.message_id)
+        elif (message.reply_to_message.video or message.reply_to_message.animation) and message['from']['id'] == 448741268:
+            if message.reply_to_message.video:
+                path = await download_file(message.reply_to_message.video.file_id)
+            else:
+                path = await download_file(message.reply_to_message.animation.file_id)
+            text = message.text.split(" ", maxsplit=1)[1]
+            if not text:
+                await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
+                                       reply_to_message_id=message.message_id)
+                return
+            captions = text.split("\n\n")
+            for caption in captions:
+                caption = caption.split("\n")
+                if len(caption) == 2:
+                    title, plain = caption
+                else:
+                    title = caption[0]
+                    plain = ''
+                meme_path = demotivator_video(path, title, plain)
+                os.remove(path)
+                path = meme_path
+            await bot.send_animation(message.chat.id, open(path, 'rb'))
+            os.remove(path)
+            return
+    await bot.send_message(message.chat.id, "Реплайни командою на картинку, гіфку або відео!", reply_to_message_id=message.message_id)
 
 
-def demotivator_generator(path, title_text, plain_text):
-    img = Image.open(path)
+def demotivator_generator(path='', title_text='', plain_text=''):
     background = Image.open('materials/template.png')
-    sizes = (482, 322)
-    pos = (59, 39)
-    img = img.resize(sizes, Image.ANTIALIAS)
-    background.paste(img, pos)
+    if path != '':
+        img = Image.open(path)
+        sizes = (482, 322)
+        pos = (59, 39)
+        img = img.resize(sizes, Image.ANTIALIAS)
+        background.paste(img, pos)
     draw = ImageDraw.Draw(background)
     title = ImageFont.truetype('materials/TimesNewRoman.ttf', 40)
     plain = ImageFont.truetype('materials/TimesNewRoman.ttf', 25)
@@ -359,7 +392,20 @@ def demotivator_generator(path, title_text, plain_text):
     plainw = draw.textsize(plain_text, font=plain)[0]
     draw.text(((w - titlew) / 2, 375), title_text, fill="white", font=title)
     draw.text(((w - plainw) / 2, 430), plain_text, fill="white", font=plain)
-    background.save(path, 'png')
+    name = str(int(random.random() * 10000)) + '.png'
+    background.save(name, 'png')
+    return name
+
+
+def demotivator_video(path, title_text, plain_text=""):
+    gif = VideoFileClip(path)
+    template = demotivator_generator(title_text=title_text, plain_text=plain_text)
+    template_clip = ImageClip(template, duration=gif.duration)
+    os.remove(template)
+    meme = CompositeVideoClip([template_clip, gif.resize((482, 322)).set_position((59, 39))])
+    name = str(int(random.random() * 10000)) + '.mp4'
+    meme.write_videofile(name) # , verbose=False, logger=None)
+    return name
 
 
 async def download_file(file_id):
