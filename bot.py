@@ -15,7 +15,6 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from bs4 import BeautifulSoup
 from babel.dates import format_datetime
 from PIL import Image, ImageDraw, ImageFont
-from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip
 import config
 
 bot = Bot(config.TOKEN)
@@ -398,13 +397,10 @@ def demotivator_generator(path='', title_text='', plain_text=''):
 
 
 def demotivator_video(path, title_text, plain_text=""):
-    gif = VideoFileClip(path)
     template = demotivator_generator(title_text=title_text, plain_text=plain_text)
-    template_clip = ImageClip(template, duration=gif.duration)
-    os.remove(template)
-    meme = CompositeVideoClip([template_clip, gif.resize((482, 322)).set_position((59, 39))])
     name = str(int(random.random() * 10000)) + '.mp4'
-    meme.write_videofile(name, verbose=False, logger=None)
+    os.system(f'ffmpeg -loglevel panic -loop 1 -i {template} -vf "movie={path},scale=480:320[inner];[in][inner]overlay=60:40:shortest=1[out]" -y {name}')
+    os.remove(template)
     return name
 
 
