@@ -348,7 +348,7 @@ async def demotivators(message):
             await bot.send_photo(message.chat.id, open(path, 'rb'))
             os.remove(path)
             return
-        elif (message.reply_to_message.video or message.reply_to_message.animation) and message['from']['id'] == 448741268:
+        elif (message.reply_to_message.video or message.reply_to_message.animation) and (message['from']['id'] == 448741268 or message['chat']['id'] == -1001247268742):
             if message.reply_to_message.video:
                 path = await download_file(message.reply_to_message.video.file_id)
             else:
