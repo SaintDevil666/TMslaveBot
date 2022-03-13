@@ -301,8 +301,9 @@ async def postirony(message):
     if message.reply_to_message:
         if message.reply_to_message.photo:
             path = await download_file(message.reply_to_message.photo[-1].file_id)
-            text = message.text.split(" ", maxsplit=1)[1]
-            if not text:
+            try:
+                text = message.text.split(" ", maxsplit=1)[1]
+            except IndexError:
                 await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
                                        reply_to_message_id=message.message_id)
                 return
@@ -326,8 +327,9 @@ async def demotivators(message):
     if message.reply_to_message:
         if message.reply_to_message.photo:
             path = await download_file(message.reply_to_message.photo[-1].file_id)
-            text = message.text.split(" ", maxsplit=1)[1]
-            if not text:
+            try:
+                text = message.text.split(" ", maxsplit=1)[1]
+            except IndexError:
                 await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
                                        reply_to_message_id=message.message_id)
                 return
@@ -350,8 +352,9 @@ async def demotivators(message):
                 path = await download_file(message.reply_to_message.video.file_id)
             else:
                 path = await download_file(message.reply_to_message.animation.file_id)
-            text = message.text.split(" ", maxsplit=1)[1]
-            if not text:
+            try:
+                text = message.text.split(" ", maxsplit=1)[1]
+            except IndexError:
                 await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
                                        reply_to_message_id=message.message_id)
                 return
