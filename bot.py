@@ -343,8 +343,10 @@ async def demotivators(message):
                     title, plain = caption
                 else:
                     title = caption[0]
-                    plain = 'Текст'
-                demotivator_generator(path, title, plain)
+                    plain = ''
+                meme_path = demotivator_generator(path, title, plain)
+                os.remove(path)
+                path = meme_path
             await bot.send_photo(message.chat.id, open(path, 'rb'))
             os.remove(path)
             return
@@ -376,23 +378,15 @@ async def demotivators(message):
 
 
 def demotivator_generator(path='', title_text='', plain_text=''):
-    background = Image.open('materials/template.png')
+    filter_complex = []
     if path != '':
-        img = Image.open(path)
-        sizes = (482, 322)
-        pos = (59, 39)
-        img = img.resize(sizes, Image.ANTIALIAS)
-        background.paste(img, pos)
-    draw = ImageDraw.Draw(background)
-    title = ImageFont.truetype('materials/TimesNewRoman.ttf', 40)
-    plain = ImageFont.truetype('materials/TimesNewRoman.ttf', 25)
-    w, h = background.size
-    titlew = draw.textsize(title_text, font=title)[0]
-    plainw = draw.textsize(plain_text, font=plain)[0]
-    draw.text(((w - titlew) / 2, 375), title_text, fill="white", font=title)
-    draw.text(((w - plainw) / 2, 430), plain_text, fill="white", font=plain)
+        filter_complex = ["[1]scale=480:320[inner]", "[0][inner]overlay=60:40[meme]"]
+    filter_complex.append(f"[{'meme' if path != '' else '0'}]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{title_text}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=385[meme]")
+    if plain_text:
+        filter_complex.append(f"[meme]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{plain_text}': fontsize=25: fontcolor=white: x=(w-text_w)/2: y=440[meme]")
     name = str(int(random.random() * 10000)) + '.png'
-    background.save(name, 'png')
+    command = f"ffmpeg -i materials/template.jpg{f' -i {path}' if path else ''} -filter_complex \"{';'.join(filter_complex)}\" -map [meme] -y {name}"
+    os.system(command)
     return name
 
 
