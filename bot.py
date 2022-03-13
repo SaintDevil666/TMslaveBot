@@ -13,8 +13,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor, exceptions
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from bs4 import BeautifulSoup
-from babel.dates import format_datetime
-from PIL import Image, ImageDraw, ImageFont
+# from babel.dates import format_datetime
 import config
 
 bot = Bot(config.TOKEN)
@@ -41,7 +40,6 @@ try:
     os.mkdir("videos/")
 except:
     pass
-
 
 
 class ErrorLogs(object):
@@ -96,7 +94,7 @@ async def send_holidays(message):
 
 @dp.message_handler(commands=["roll"])
 async def roll_list(message):
-    if message.chat.id == -1001247268742:
+    if message.chat.id == config.GROUP_ID:
         await bot.send_message(message.chat.id, "\n".join(random.sample(group_list, len(group_list))))
 
 
@@ -126,7 +124,7 @@ async def random_komaru(message):
     while True:
         i = random.randint(3, last_komaru_id)
         try:
-            await bot.copy_message(from_chat_id=-1001246822740, chat_id=message.chat.id, message_id=i)
+            await bot.copy_message(from_chat_id=config.KOMARU_COLLECTION_ID, chat_id=message.chat.id, message_id=i)
         except exceptions.BadRequest:
             continue
         break
@@ -134,8 +132,8 @@ async def random_komaru(message):
 
 @dp.channel_post_handler(content_types=["animation", "video/mp4"])
 async def new_cat(post):
-    if post.chat.id == -1001246822740:
-        await bot.send_animation(-1001247268742, post.animation.file_id)
+    if post.chat.id == config.KOMARU_COLLECTION_ID:
+        await bot.send_animation(config.GROUP_ID, post.animation.file_id)
         global last_komaru_id
         last_komaru_id += 1
 
@@ -304,26 +302,23 @@ async def postirony(message):
         if message.reply_to_message.photo:
             path = await download_file(message.reply_to_message.photo[-1].file_id)
             text = message.text.split(" ", maxsplit=1)[1]
-            if len(text) == 0:
+            if not text:
                 await bot.send_message(message.chat.id, "А текст я сам вигадати маю?",
                                        reply_to_message_id=message.message_id)
                 return
-            postironic(path, text)
-            await bot.send_photo(message.chat.id, photo=open(path, 'rb'))
+            meme_path = postironic(path, text)
+            await bot.send_photo(message.chat.id, photo=open(meme_path, 'rb'))
             os.remove(path)
+            os.remove(meme_path)
             return
     await bot.send_message(message.chat.id, "Реплайни командою на картинку!", reply_to_message_id=message.message_id)
 
 
 def postironic(path, text):
-    img = Image.open(path)
-    draw = ImageDraw.Draw(img)
-    w, h = img.size
-    font = ImageFont.truetype('utils/Lobster.ttf', int(h / 12))
-    t = draw.multiline_textsize(text, font=font)
-    draw.multiline_text(((w - t[0]) / 2, int(h * 0.87)), text, font=font, fill="black")
-    draw.multiline_text(((w - t[0]) / 2, int(h * 0.87) - 2), text, font=font, fill="white")
-    img.save(path)
+    name = str(int(random.random() * 10000)) + '.jpg'
+    os.system(f"ffmpeg -i {path} -filter_complex \"[0]drawtext=fontfile=materials/Lobster.ttf:text='{text}': fontsize=(h/12): fontcolor=black: x=(w-text_w)/2: y=(h*0.9)[meme];"
+              f"[meme]drawtext=fontfile=materials/Lobster.ttf:text='{text}': fontsize=(h/12): fontcolor=white: x=(w-text_w)/2: y=(h*0.9)-3[meme]\" -map [meme] -y {name}")
+    return name
 
 
 @dp.message_handler(commands=["demotivator"])
@@ -350,7 +345,7 @@ async def demotivators(message):
             await bot.send_photo(message.chat.id, open(path, 'rb'))
             os.remove(path)
             return
-        elif (message.reply_to_message.video or message.reply_to_message.animation) and (message['from']['id'] == 448741268 or message['chat']['id'] == -1001247268742):
+        elif (message.reply_to_message.video or message.reply_to_message.animation) and (message['from']['id'] == config.ADMIN_ID or message['chat']['id'] == config.GROUP_ID):
             if message.reply_to_message.video:
                 path = await download_file(message.reply_to_message.video.file_id)
             else:
@@ -384,7 +379,7 @@ def demotivator_generator(path='', title_text='', plain_text=''):
     filter_complex.append(f"[{'meme' if path != '' else '0'}]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{title_text}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=385[meme]")
     if plain_text:
         filter_complex.append(f"[meme]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{plain_text}': fontsize=25: fontcolor=white: x=(w-text_w)/2: y=440[meme]")
-    name = str(int(random.random() * 10000)) + '.png'
+    name = str(int(random.random() * 10000)) + '.jpg'
     command = f"ffmpeg -i materials/template.jpg{f' -i {path}' if path else ''} -filter_complex \"{';'.join(filter_complex)}\" -map [meme] -y {name}"
     os.system(command)
     return name
