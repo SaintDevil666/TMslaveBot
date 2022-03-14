@@ -22,24 +22,8 @@ dp.middleware.setup(LoggingMiddleware())
 
 db = pymongo.MongoClient("mongodb://localhost:27017/").TMslave
 
-group_list = config.GROUP_LIST
-
-last_id = {
-    "myfavoritejumoreski": 0,
-    "anekdot_bb": 0
+cached_last_id = {
 }
-last_komaru_id = 142
-
-last_holidays = {
-    "date": None,
-    "text": ""
-}
-
-try:
-    os.mkdir("animations/")
-    os.mkdir("videos/")
-except:
-    pass
 
 
 class ErrorLogs(object):
@@ -57,6 +41,10 @@ class ErrorLogs(object):
 sys.stderr = ErrorLogs()
 
 '''
+last_holidays = {
+    "date": None,
+    "text": ""
+}
 @dp.message_handler(commands=["holidays"])
 async def send_holidays(message):
     date = format_datetime(datetime.today(), 'd MMMM YYYY', locale='uk_UA')
@@ -95,7 +83,7 @@ async def send_holidays(message):
 @dp.message_handler(commands=["roll"])
 async def roll_list(message):
     if message.chat.id == config.GROUP_ID:
-        await bot.send_message(message.chat.id, "\n".join(random.sample(group_list, len(group_list))))
+        await bot.send_message(message.chat.id, "\n".join(random.sample(config.GROUP_LIST, len(config.GROUP_LIST))))
 
 
 @dp.message_handler(commands=["cat"])
@@ -121,8 +109,9 @@ async def random_cat(message):
 
 @dp.message_handler(commands=["komaru"])
 async def random_komaru(message):
+    global cached_last_id
     while True:
-        i = random.randint(3, last_komaru_id)
+        i = random.randint(3, cached_last_id[config.KOMARU_COLLECTION_USERNAME])
         try:
             await bot.copy_message(from_chat_id=config.KOMARU_COLLECTION_ID, chat_id=message.chat.id, message_id=i)
         except exceptions.BadRequest:
@@ -134,8 +123,8 @@ async def random_komaru(message):
 async def new_cat(post):
     if post.chat.id == config.KOMARU_COLLECTION_ID:
         await bot.send_animation(config.GROUP_ID, post.animation.file_id)
-        global last_komaru_id
-        last_komaru_id += 1
+        global cached_last_id
+        cached_last_id[config.KOMARU_COLLECTION_USERNAME] = post.message_id
 
 
 def get_last_id(source):
@@ -149,21 +138,20 @@ def get_last_id(source):
 
 
 @dp.message_handler(commands=["anek"])
-async def send_anecdote(message):
-    global last_id
-    sources = ["myfavoritejumoreski", "anekdot_bb"]
-    source = random.choice(sources)
+async def random_anecdote(message):
+    global cached_last_id
+    source = random.choice(config.ANECDOTE_SOURCES)
     while True:
-        i = random.randrange(2, last_id[source])
+        i = random.randrange(2, cached_last_id[source])
         resp = requests.get("https://t.me/" + source + "/" + str(i))
         soup = BeautifulSoup(resp.text, features="html.parser")
         soup.find()
         text = soup.find('meta', {'name': 'twitter:description'})
         if text:
-            joke = text['content']
-            if not (('http' in joke) or ('/' in joke) or ('@' in joke) or joke == ""):
+            caption = text['content']
+            if not (('http' in caption) or ('/' in caption) or ('@' in caption) or caption == ""):
                 try:
-                    await bot.send_message(message.chat.id, joke)
+                    await bot.send_message(message.chat.id, caption)
                 except exceptions.BadRequest:
                     continue
                 break
@@ -277,17 +265,23 @@ async def choose_pussy(message):
 @dp.message_handler(commands=["reverse"])
 async def reverse_video(message):
     if message.reply_to_message:
-        if message.reply_to_message.video:
-            file_id = message.reply_to_message.video.file_id
-        elif message.reply_to_message.animation:
-            file_id = message.reply_to_message.animation.file_id
-        else:
-            await bot.send_message(message.chat.id, "Реплайни командою на відео або гіфку!",
+        path = "temp/input" + str(int(random.random() * 10000)) + ".mp4"
+        try:
+            if message.reply_to_message.video:
+                await bot.download_file_by_id(file_id=message.reply_to_message.video.file_id, destination=path, timeout=60)
+            elif message.reply_to_message.animation:
+                await bot.download_file_by_id(file_id=message.reply_to_message.animation.file_id, destination=path, timeout=60)
+            else:
+                await bot.send_message(message.chat.id, "Реплайни командою на відео або гіфку!",
+                                       reply_to_message_id=message.message_id)
+                return
+        except asyncio.exceptions.TimeoutError:
+            await bot.send_message(message.chat.id, "TimeoutError: took too much time to download",
                                    reply_to_message_id=message.message_id)
+            os.remove(path)
             return
-        path = await download_file(file_id)
-        new_path = "videos/r" + str(random.randrange(1000)) + ".mp4"
-        os.system("ffmpeg -loglevel panic -i " + path + " -vf reverse -af areverse " + new_path)
+        new_path = "temp/output" + str(random.randrange(1000)) + ".mp4"
+        os.system("ffmpeg -loglevel panic -i " + path + " -vf reverse " + new_path)
         await bot.send_animation(message.chat.id, animation=open(new_path, 'rb'))
         os.remove(path)
         os.remove(new_path)
@@ -300,7 +294,15 @@ async def reverse_video(message):
 async def postirony(message):
     if message.reply_to_message:
         if message.reply_to_message.photo:
-            path = await download_file(message.reply_to_message.photo[-1].file_id)
+            path = "temp/input" + str(int(random.random() * 10000)) + ".jpg"
+            try:
+                await bot.download_file_by_id(file_id=message.reply_to_message.photo[-1].file_id, destination=path,
+                                              timeout=60)
+            except asyncio.exceptions.TimeoutError:
+                await bot.send_message(message.chat.id, "TimeoutError: took too much time to download file",
+                                       reply_to_message_id=message.message_id)
+                os.remove(path)
+                return
             try:
                 text = message.text.split(" ", maxsplit=1)[1]
             except IndexError:
@@ -316,7 +318,7 @@ async def postirony(message):
 
 
 def postironic(path, text):
-    name = str(int(random.random() * 10000)) + '.jpg'
+    name = "temp/output" + str(int(random.random() * 10000)) + '.jpg'
     os.system(f"ffmpeg -i {path} -filter_complex \"[0]drawtext=fontfile=materials/Lobster.ttf:text='{text}': fontsize=(h/12): fontcolor=black: x=(w-text_w)/2: y=(h*0.9)[meme];"
               f"[meme]drawtext=fontfile=materials/Lobster.ttf:text='{text}': fontsize=(h/12): fontcolor=white: x=(w-text_w)/2: y=(h*0.9)-3[meme]\" -map [meme] -y {name}")
     return name
@@ -326,7 +328,15 @@ def postironic(path, text):
 async def demotivators(message):
     if message.reply_to_message:
         if message.reply_to_message.photo:
-            path = await download_file(message.reply_to_message.photo[-1].file_id)
+            path = "temp/input" + str(int(random.random() * 10000)) + ".jpg"
+            try:
+                await bot.download_file_by_id(file_id=message.reply_to_message.photo[-1].file_id, destination=path,
+                                              timeout=60)
+            except asyncio.exceptions.TimeoutError:
+                await bot.send_message(message.chat.id, "TimeoutError: took too much time to download file.",
+                                       reply_to_message_id=message.message_id)
+                os.remove(path)
+                return
             try:
                 text = message.text.split(" ", maxsplit=1)[1]
             except IndexError:
@@ -348,10 +358,19 @@ async def demotivators(message):
             os.remove(path)
             return
         elif (message.reply_to_message.video or message.reply_to_message.animation) and (message['from']['id'] == config.ADMIN_ID or message['chat']['id'] == config.GROUP_ID):
-            if message.reply_to_message.video:
-                path = await download_file(message.reply_to_message.video.file_id)
-            else:
-                path = await download_file(message.reply_to_message.animation.file_id)
+            path = "temp/input" + str(int(random.random() * 10000)) + ".mp4"
+            try:
+                if message.reply_to_message.video:
+                    await bot.download_file_by_id(file_id=message.reply_to_message.video.file_id, destination=path,
+                                                  timeout=60)
+                elif message.reply_to_message.animation:
+                    await bot.download_file_by_id(file_id=message.reply_to_message.animation.file_id, destination=path,
+                                                  timeout=60)
+            except asyncio.exceptions.TimeoutError:
+                await bot.send_message(message.chat.id, "TimeoutError: took too much time to download file.",
+                                       reply_to_message_id=message.message_id)
+                os.remove(path)
+                return
             try:
                 text = message.text.split(" ", maxsplit=1)[1]
             except IndexError:
@@ -382,7 +401,7 @@ def demotivator_generator(path='', title_text='', plain_text=''):
     filter_complex.append(f"[{'meme' if path != '' else '0'}]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{title_text}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=385[meme]")
     if plain_text:
         filter_complex.append(f"[meme]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{plain_text}': fontsize=25: fontcolor=white: x=(w-text_w)/2: y=440[meme]")
-    name = str(int(random.random() * 10000)) + '.jpg'
+    name = "temp/output" + str(int(random.random() * 10000)) + '.jpg'
     command = f"ffmpeg -i materials/template.jpg{f' -i {path}' if path else ''} -filter_complex \"{';'.join(filter_complex)}\" -map [meme] -y {name}"
     os.system(command)
     return name
@@ -390,7 +409,7 @@ def demotivator_generator(path='', title_text='', plain_text=''):
 
 def demotivator_video(path, title_text, plain_text=""):
     template = demotivator_generator(title_text=title_text, plain_text=plain_text)
-    name = str(int(random.random() * 10000)) + '.mp4'
+    name = "temp/output" + str(int(random.random() * 10000)) + '.mp4'
     os.system(f'ffmpeg -loglevel panic -loop 1 -i {template} -vf "movie={path},scale=480:320[inner];[in][inner]overlay=60:40:shortest=1[out]" -y {name}')
     os.remove(template)
     return name
@@ -404,8 +423,8 @@ async def download_file(file_id):
     return path
 
 
-for src in last_id.keys():
-    last_id[src] = get_last_id(src)
-last_komaru_id = get_last_id(config.CATS_LINK)
+for channel in config.ANECDOTE_SOURCES:
+    cached_last_id[channel] = get_last_id(channel)
+cached_last_id[config.KOMARU_COLLECTION_USERNAME] = get_last_id(config.KOMARU_COLLECTION_USERNAME)
 
 executor.start_polling(dp)
