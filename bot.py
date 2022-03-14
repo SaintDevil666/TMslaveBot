@@ -31,7 +31,7 @@ class ErrorLogs(object):
 
     def flush(self):
         requests.post("https://api.telegram.org/bot" + config.TOKEN + "/sendMessage",
-                      {"chat_id": 448741268, "text": "".join(self.errs)})
+                      {"chat_id": config.ADMIN_ID, "text": "".join(self.errs)})
         self.errs = []
 
     def write(self, data):

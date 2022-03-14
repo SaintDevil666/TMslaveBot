@@ -18,7 +18,7 @@ class ErrorLogs(object):
 
     def flush(self):
         requests.post("https://api.telegram.org/bot" + config.TOKEN + "/sendMessage",
-                      {"chat_id": 448741268, "text": "".join(self.errs)})
+                      {"chat_id": config.ADMIN_ID, "text": "".join(self.errs)})
         self.errs = []
 
     def write(self, data):
@@ -52,7 +52,7 @@ async def send_holidays():
                 cur = cur.next_element
             if cur.name == "p":
                 text += "\n\n" + cur.getText()
-            await bot.send_message(-1001247268742, text)
+            await bot.send_message(config.GROUP_ID, text)
             break
 
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
     # schedule.every().day.at("6:01").do(send_holidays)
-    schedule.every().tuesday.at("23:01").do(bot.send_sticker, chat_id=-1001247268742, sticker="CAACAgIAAxkBAAEKkbJg2J33eYHwNrmjAgJ8VYcqPO_GIgACGAEAApXcNhsZWSFEX9acniAE")
+    schedule.every().tuesday.at("23:01").do(bot.send_sticker, chat_id=config.GROUP_ID, sticker="CAACAgIAAxkBAAEKkbJg2J33eYHwNrmjAgJ8VYcqPO_GIgACGAEAApXcNhsZWSFEX9acniAE")
     
     while True:
         loop.run_until_complete(schedule.run_pending())
