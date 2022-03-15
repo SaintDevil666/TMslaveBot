@@ -415,14 +415,6 @@ def demotivator_video(path, title_text, plain_text=""):
     return name
 
 
-async def download_file(file_id):
-    path = (await bot.get_file(file_id)).file_path
-    url = "https://api.telegram.org/file/bot" + config.TOKEN + "/" + path
-    os.system("touch " + path)
-    open(path, "wb").write(requests.get(url).content)
-    return path
-
-
 for channel in config.ANECDOTE_SOURCES:
     cached_last_id[channel] = get_last_id(channel)
 cached_last_id[config.KOMARU_COLLECTION_USERNAME] = get_last_id(config.KOMARU_COLLECTION_USERNAME)
