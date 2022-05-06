@@ -249,8 +249,7 @@ async def choose_pussy(message):
 
         await bot.send_message(message.chat.id,
                                "Сьогодні кіска дня - " + (
-                                   ("@" + new_winner['username']) if new_winner["username"] else new_winner[
-                                       'name']) + "!")
+                                   ("@" + new_winner['username']) if new_winner["username"] else new_winner['name']) + "!")
         await bot.send_sticker(message.chat.id,
                                "CAACAgUAAxkBAAEBfWxg1ikMdDsxNAccPVrQTi7KhFz9_QAC2gIAAoeTeFbh1He2hSXcMiAE")
     else:
@@ -397,10 +396,10 @@ async def demotivators(message):
 def demotivator_generator(path='', title_text='', plain_text=''):
     filter_complex = []
     if path != '':
-        filter_complex = ["[1]scale=480:320[inner]", "[0][inner]overlay=60:40[meme]"]
-    filter_complex.append(f"[{'meme' if path != '' else '0'}]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{title_text}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=385[meme]")
+        filter_complex = ["[1]scale=368:321[inner]", "[0][inner]overlay=47:40[meme]"]
+    filter_complex.append(f"[{'meme' if path != '' else '0'}]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{title_text}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y={'385' if plain_text else '400'}[meme]")
     if plain_text:
-        filter_complex.append(f"[meme]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{plain_text}': fontsize=25: fontcolor=white: x=(w-text_w)/2: y=440[meme]")
+        filter_complex.append(f"[meme]drawtext=fontfile=materials/TimesNewRoman.ttf:text='{plain_text}': fontsize=25: fontcolor=white: x=(w-text_w)/2: y=433[meme]")
     name = "temp/output" + str(int(random.random() * 10000)) + '.jpg'
     command = f"ffmpeg -i materials/template.jpg{f' -i {path}' if path else ''} -filter_complex \"{';'.join(filter_complex)}\" -map [meme] -y {name}"
     os.system(command)
@@ -410,7 +409,7 @@ def demotivator_generator(path='', title_text='', plain_text=''):
 def demotivator_video(path, title_text, plain_text=""):
     template = demotivator_generator(title_text=title_text, plain_text=plain_text)
     name = "temp/output" + str(int(random.random() * 10000)) + '.mp4'
-    os.system(f'ffmpeg -loglevel panic -loop 1 -i {template} -vf "movie={path},scale=480:320[inner];[in][inner]overlay=60:40:shortest=1[out]" -y {name}')
+    os.system(f'ffmpeg -loglevel panic -loop 1 -i {template} -vf "movie={path},scale=368:321[inner];[in][inner]overlay=47:40:shortest=1[out]" -y {name}')
     os.remove(template)
     return name
 
