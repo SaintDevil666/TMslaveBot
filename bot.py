@@ -4,7 +4,6 @@ import os
 import sys
 import random
 import requests
-import asyncpraw
 import asyncio
 import pymongo
 from aiogram import Bot
@@ -87,24 +86,29 @@ async def roll_list(message):
 
 
 @dp.message_handler(commands=["cat"])
-async def random_cat(message):
-    path = ""
-    try:
-        reddit = asyncpraw.Reddit(**config.REDDIT)
-        subreddit = reddit.subreddit('cats')
-        cat = (await (await subreddit).random()).url
-        path = "c" + str(random.randrange(1000)) + ".jpg"
-        wf = open(path, 'wb')
-        wf.write(requests.get(cat).content)
-        await reddit.close()
-        wf.close()
-        wr = open(path, 'rb')
-        await bot.send_photo(message.chat.id, (path, wr))
-        wr.close()
+async def random_cat(message, recursion=0):
+    if recursion > 4:
+        await bot.send_message(message.chat.id, "Server error, please try again later.")
+        return
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    resp = requests.get('https://reddit.com/r/cats/random.json', headers=headers)
+    if resp.status_code == 200:
+        try:
+            pic_link = resp.json()[0]['data']['children'][0]['data']['url']
+        except:
+            asyncio.ensure_future(random_cat(message, recursion + 1))
+            return
+        if not pic_link.endswith(".jpg"):
+            asyncio.ensure_future(random_cat(message, recursion + 1))
+            return
+        path = pic_link.split("/")[-1]
+        os.system(f'wget {pic_link}')
+        pic = open(path, 'rb')
+        await bot.send_photo(message.chat.id, (path, pic))
+        pic.close()
         os.remove(path)
-    except:
-        os.remove(path)
-        asyncio.ensure_future(random_cat(message))
+    else:
+        asyncio.ensure_future(random_cat(message, recursion + 1))
 
 
 @dp.message_handler(commands=["komaru"])
