@@ -56,12 +56,17 @@ async def send_holidays():
             break
 
 
+def send_cat_19th():
+    if datetime.now().day == 19:
+        bot.send_photo(chat_id=config.GROUP_ID, photo="AgACAgIAAxkBAAId92TJ9GDWm6VY0V4q-nt2lz41a1_HAALTzDEb0G4BSmzUie77563vAQADAgADeQADLwQ")
+
+
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
     # schedule.every().day.at("6:01").do(send_holidays)
     schedule.every().tuesday.at("23:00").do(bot.send_sticker, chat_id=config.GROUP_ID, sticker="CAACAgIAAxkBAAEKkbJg2J33eYHwNrmjAgJ8VYcqPO_GIgACGAEAApXcNhsZWSFEX9acniAE")
-    schedule.every().month.at("23:00").day(19).do(bot.send_photo, chat_id=config.GROUP_ID, photo="AgACAgIAAxkBAAId92TJ9GDWm6VY0V4q-nt2lz41a1_HAALTzDEb0G4BSmzUie77563vAQADAgADeQADLwQ")
+    schedule.every().day.at("23:00").do(send_cat_19th)
     
     while True:
         loop.run_until_complete(schedule.run_pending())
