@@ -56,7 +56,7 @@ async def send_holidays():
             break
 
 
-def send_cat_19th():
+async def send_cat_19th():
     if datetime.now().day == 19:
         bot.send_photo(chat_id=config.GROUP_ID, photo="AgACAgIAAxkBAAId92TJ9GDWm6VY0V4q-nt2lz41a1_HAALTzDEb0G4BSmzUie77563vAQADAgADeQADLwQ")
 
